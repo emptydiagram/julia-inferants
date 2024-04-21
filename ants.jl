@@ -22,6 +22,11 @@ function softmax(x::Union{Matrix{Float64}, Vector{Float64}})
     return x
 end
 
+function get_root_dir(filepath)
+    dir = dirname(filepath)
+    return isempty(dir) ? "./" : dir
+end
+
 
 mutable struct MDP
     A::Matrix{Float64}
@@ -235,7 +240,7 @@ end
 
 function check_walls(env::AntTMazeEnv, orig_x::Int, orig_y::Int, x_pos::Int, y_pos::Int)
     is_valid = true
-    if orig_y > env.config.wall_t_bot_y
+    if orig_y < env.config.wall_t_bot_y
         if orig_x >= env.config.wall_left_x && x_pos <= env.config.wall_left_x
             is_valid = false
         end
@@ -243,10 +248,13 @@ function check_walls(env::AntTMazeEnv, orig_x::Int, orig_y::Int, x_pos::Int, y_p
             is_valid = false
         end
     end
-    if orig_y <= env.config.wall_t_bot_y
-        if y_pos > env.config.wall_t_bot_y && ((x_pos < env.config.wall_left_x) || (x_pos > env.config.wall_right_x))
-            valid = false
+    if orig_y >= env.config.wall_t_bot_y
+        if y_pos < env.config.wall_t_bot_y && ((x_pos < env.config.wall_left_x) || (x_pos > env.config.wall_right_x))
+            is_valid = false
         end
+    end
+    if y_pos < env.config.wall_t_bot_y && (x_pos < env.config.wall_left_x || x_pos > env.config.wall_right_x) && is_valid
+        println("(orig_x, orig_y) = ($orig_x, $orig_y); (x_pos, y_pos) = ($x_pos, $y_pos) should be invalid!!! is_valid = $is_valid")
     end
     return is_valid
 end
@@ -288,7 +296,7 @@ function step_backward(env::AntTMazeEnv, ant::Ant)
     end
 end
 
-function plot_ants(env::AntTMazeEnv, ants::Vector{Ant}, save_filename::String)
+function plot_ants(env::AntTMazeEnv, ants::Vector{Ant}, save_filepath::String)
     x_pos_forward, y_pos_forward = [], []
     x_pos_backward, y_pos_backward = [], []
 
@@ -308,6 +316,12 @@ function plot_ants(env::AntTMazeEnv, ants::Vector{Ant}, save_filename::String)
     scatter!(phero_plot, x_pos_forward, y_pos_forward, color="red", markersize=5, label="Exploring ant")
     scatter!(phero_plot, x_pos_backward, y_pos_backward, color="blue", markersize=5, label="Returning ant")
     display(phero_plot)
+
+    # ensure results directory exists
+    get_root_dir(save_filepath) |> dir -> isdir(dir) || mkdir(dir)
+
+
+    savefig(phero_plot, save_filepath)
     sleep(3)
 end
 
@@ -352,7 +366,7 @@ function run()
     NEW_ANT_Y_INIT = 30
     WALL_LEFT_X = 15
     WALL_RIGHT_X = 25
-    WALL_T_BOT_Y = 10
+    WALL_T_BOT_Y = 30
     NUM_PHEROMONE_LEVELS = 10
     NUM_STATES = 9
     NUM_ACTIONS = 9
@@ -360,7 +374,7 @@ function run()
     DECAY_PROB = 0.01
     ACTION_MAP = [(-1, -1), (0, -1), (1, -1), (-1, 0), (0, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
     OPPOSITE_ACTIONS = reverse(1:length(ACTION_MAP))
-    FOOD_LOCATION = (40, 5)
+    FOOD_LOCATION = (40, 35)
     FOOD_SIZE = (10, 10)
 
     NUM_STEPS = 2000
