@@ -1,4 +1,4 @@
-![ant T-maze simulation results](results/ants_animation.gif)
+![ant T-maze simulation results](results/ants_animation_switch.gif)
 
 Run with `julia ants.jl`. Example output:
 

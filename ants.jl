@@ -168,7 +168,7 @@ end
 
 
 
-struct AntTMazeEnvConfig
+mutable struct AntTMazeEnvConfig
     grid_dims::Tuple{Int, Int}
     num_init_ants::Int
     num_max_ants::Int
@@ -375,9 +375,9 @@ function run()
     FOOD_SIZE = (10, 10)
 
     NUM_STEPS = 2000
-    NUM_INIT_ANTS = 40
+    NUM_INIT_ANTS = 70
     NUM_MAX_ANTS = 70
-    SWITCH_FOOD = false
+    SWITCH_FOOD = true
 
     C::Matrix{Float64} = zeros(NUM_PHEROMONE_LEVELS, 1)
     for o in 1:NUM_PHEROMONE_LEVELS
@@ -449,7 +449,7 @@ function run()
         end
 
         if SWITCH_FOOD && t % (NUM_STEPS // 2) == 0
-            config.food_location[1] = config.grid_dims[1] - config.food_location[1]
+            config.food_location = (config.grid_dims[1] - config.food_location[1], config.food_location[2])
         end
 
         for ant in ants
@@ -480,7 +480,7 @@ function run()
         push!(ant_locations, [(ant.x_pos, ant.y_pos) for ant in ants])
     end
 
-    gif(anim, "results/ants_animation.gif", fps = 100)
+    gif(anim, "results/ants_animation$(SWITCH_FOOD ? "_switch" : "").gif", fps = 100)
 
     return num_completed_trips, paths, tot_avg_distance
 
