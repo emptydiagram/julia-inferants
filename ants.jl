@@ -42,7 +42,7 @@ mutable struct MDP
     prev_action::Union{Int, Nothing}
     rng::Random.MersenneTwister
 
-    function MDP(A::Matrix{Float64}, B, C; seed=nothing)
+    function MDP(A::Matrix{Float64}, B, C::Matrix{Float64}; seed=nothing)
         p0 = exp(-16)
         num_states = size(A, 2)
         num_obs = size(A, 1)
@@ -75,7 +75,7 @@ mutable struct MDP
     end
 end
 
-function set_A(mdp::MDP, A)
+function set_A(mdp::MDP, A::Matrix{Float64})
     mdp.A = A .+ mdp.p0
     mdp.A = norm_prob(mdp.A)
     mdp.lnA = log.(mdp.A)
@@ -86,7 +86,6 @@ function reset(mdp::MDP, obs::Observation)
     obs_idx = obs + 1
     likelihood = mdp.lnA[obs_idx, :]
     likelihood = copy(likelihood)
-    # likelihood = likelihood[:, np.newaxis]
     mdp.sQ = reshape(softmax(likelihood), (length(likelihood), 1))
     mdp.prev_action = random_action(mdp)
 end
@@ -95,7 +94,7 @@ function random_action(mdp::MDP)
     return rand(mdp.rng, 1:mdp.num_actions)
 end
 
-function step(mdp::MDP, obs::Observation, opposite_actions)
+function step(mdp::MDP, obs::Observation, opposite_actions::Array{Int, 1})
     # state inference
     obs_idx = obs + 1
     likelihood = mdp.lnA[obs_idx, :]
@@ -104,7 +103,6 @@ function step(mdp::MDP, obs::Observation, opposite_actions)
     prior = log.(prior)
     mdp.sQ = softmax(prior)
 
-    # error("unimplemented")
     # action inference
     SCALE = 10
     neg_efe = zeros(mdp.num_actions, 1)
@@ -212,7 +210,7 @@ function env_decay(env::AntTMazeEnv)
     end
 end
 
-function get_ant_A(env::AntTMazeEnv, ant)
+function get_ant_A(env::AntTMazeEnv, ant::Ant)
     A = zeros((env.config.num_pheromone_levels, env.config.num_states))
     for s in 1:env.config.num_states
         delta = env.config.action_map[s]
@@ -328,7 +326,7 @@ end
 
 
 
-function create_ant(config, env, C)
+function create_ant(config::AntTMazeEnvConfig, env::AntTMazeEnv, C::Matrix{Float64})
     A = zeros((config.num_pheromone_levels, config.num_states))
     # B = [Diagonal(ones(config.num_states)) for i in 1:config.num_states]
     B = zeros((config.num_actions, config.num_states, config.num_states))
@@ -347,7 +345,7 @@ function create_ant(config, env, C)
 end
 
 
-function total_pairwise_distance(ants::Vector{Ant})
+function avg_pairwise_distance(ants::Vector{Ant})
     t_dis = 0
 
     for ant in ants
@@ -419,7 +417,7 @@ function run()
 
     println("Starting with $NUM_INIT_ANTS ants")
 
-    distance = 0
+    tot_avg_distance = 0
 
     print_frac = 0.05
     print_every = Int(NUM_STEPS * print_frac)
@@ -429,15 +427,18 @@ function run()
     num_completed_trips = 0
     paths = []
     ant_locations = []
+    distance_per_ants = []
 
     for t in 1:NUM_STEPS
-        distance += total_pairwise_distance(ants)
+        curr_avg_distance = avg_pairwise_distance(ants)
+        tot_avg_distance += curr_avg_distance
+        push!(distance_per_ants, curr_avg_distance)
 
         if t % print_every == 0
-            println("Distance at step $t: $distance")
+            println("at step $t, (avg. distance per ants) per step: $(mean(distance_per_ants)), num_completed_trips: $num_completed_trips")
         end
 
-        # periodically add ant (coming out of the nest?)
+        # periodically add ant
         if t % ADD_ANT_EVERY == 0 && length(ants) < NUM_MAX_ANTS
             ant = create_ant(config, env, C)
             push!(ants, ant)
@@ -475,7 +476,7 @@ function run()
         push!(ant_locations, [(ant.x_pos, ant.y_pos) for ant in ants])
     end
 
-    return num_completed_trips, paths, distance
+    return num_completed_trips, paths, tot_avg_distance
 
 end
 
