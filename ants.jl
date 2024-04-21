@@ -1,6 +1,7 @@
 using LinearAlgebra
 using Random
 using Distributions
+using Plots
 
 const Observation = Int8
 
@@ -287,6 +288,29 @@ function step_backward(env::AntTMazeEnv, ant::Ant)
     end
 end
 
+function plot_ants(env::AntTMazeEnv, ants::Vector{Ant}, save_filename::String)
+    x_pos_forward, y_pos_forward = [], []
+    x_pos_backward, y_pos_backward = [], []
+
+    for ant in ants
+        if ant.is_returning
+            push!(x_pos_backward, ant.x_pos)
+            push!(y_pos_backward, ant.y_pos)
+        else
+            push!(x_pos_forward, ant.x_pos)
+            push!(y_pos_forward, ant.y_pos)
+        end
+    end
+
+
+    phero_plot = heatmap(1:env.config.grid_dims[1], 1:env.config.grid_dims[2], transpose(env.cells))
+
+    scatter!(phero_plot, x_pos_forward, y_pos_forward, color="red", markersize=5, label="Exploring ant")
+    scatter!(phero_plot, x_pos_backward, y_pos_backward, color="blue", markersize=5, label="Returning ant")
+    display(phero_plot)
+    sleep(3)
+end
+
 
 
 
@@ -323,7 +347,7 @@ end
 
 function run()
     GRID_DIMS = (40,40)
-    ADD_ANT_EVERY = 50
+    ADD_ANT_EVERY = 20
     NEW_ANT_X_INIT = 20
     NEW_ANT_Y_INIT = 30
     WALL_LEFT_X = 15
@@ -385,6 +409,8 @@ function run()
 
     print_frac = 0.05
     print_every = Int(NUM_STEPS * print_frac)
+    plot_frac = 0.05
+    plot_every = Int(NUM_STEPS * plot_frac)
 
     num_completed_trips = 0
     paths = []
@@ -406,7 +432,7 @@ function run()
             end
         end
 
-        if SWITCH_FOOD && t % (NUM_STEPS / 2) == 0
+        if SWITCH_FOOD && t % (NUM_STEPS // 2) == 0
             config.food_location[1] = config.grid_dims[1] - config.food_location[1]
         end
 
@@ -427,6 +453,10 @@ function run()
         end
 
         env_decay(env)
+
+        if t % plot_every == 0
+            plot_ants(env, ants, "results/ants_$t.png")
+        end
 
         push!(ant_locations, [(ant.x_pos, ant.y_pos) for ant in ants])
     end
