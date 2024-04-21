@@ -1,3 +1,5 @@
+![ant T-maze simulation results](results/ants_animation.gif)
+
 Run with `julia ants.jl`. Example output:
 
 ```
@@ -27,7 +29,3 @@ at step 2000, (avg. distance per ants) per step: 895.7513465825676, num_complete
 Number of completed trips: 18
 Total distance: 1.791502693165132e6
 ```
-
-Resulting animation of the simulation:
-
-![ant T-maze simulation results](results/ants_animation.gif)
