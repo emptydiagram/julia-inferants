@@ -294,7 +294,7 @@ function step_backward(env::AntTMazeEnv, ant::Ant)
     end
 end
 
-function plot_ants(env::AntTMazeEnv, ants::Vector{Ant}, save_filepath::String)
+function plot_ants(env::AntTMazeEnv, ants::Vector{Ant}; save_fig=false, save_filepath=nothing)
     x_pos_forward, y_pos_forward = [], []
     x_pos_backward, y_pos_backward = [], []
 
@@ -308,19 +308,18 @@ function plot_ants(env::AntTMazeEnv, ants::Vector{Ant}, save_filepath::String)
         end
     end
 
+    ants_plot = heatmap(1:env.config.grid_dims[1], 1:env.config.grid_dims[2], transpose(env.cells))
 
-    phero_plot = heatmap(1:env.config.grid_dims[1], 1:env.config.grid_dims[2], transpose(env.cells))
+    scatter!(ants_plot, x_pos_forward, y_pos_forward, color="red", markersize=5, label="Exploring ant", legend=:bottomright)
+    scatter!(ants_plot, x_pos_backward, y_pos_backward, color="blue", markersize=5, label="Returning ant", legend=:bottomright)
+    # display(ants_plot)
 
-    scatter!(phero_plot, x_pos_forward, y_pos_forward, color="red", markersize=5, label="Exploring ant")
-    scatter!(phero_plot, x_pos_backward, y_pos_backward, color="blue", markersize=5, label="Returning ant")
-    display(phero_plot)
+    if save_fig && !isnothing(save_filepath)
+        get_root_dir(save_filepath) |> dir -> isdir(dir) || mkdir(dir)
+        savefig(ants_plot, save_filepath)
+    end
 
-    # ensure results directory exists
-    get_root_dir(save_filepath) |> dir -> isdir(dir) || mkdir(dir)
-
-
-    savefig(phero_plot, save_filepath)
-    sleep(3)
+    return ants_plot
 end
 
 
@@ -361,7 +360,7 @@ function run()
     GRID_DIMS = (40,40)
     ADD_ANT_EVERY = 20
     NEW_ANT_X_INIT = 20
-    NEW_ANT_Y_INIT = 30
+    NEW_ANT_Y_INIT = 10
     WALL_LEFT_X = 15
     WALL_RIGHT_X = 25
     WALL_T_BOT_Y = 30
@@ -429,6 +428,8 @@ function run()
     ant_locations = []
     distance_per_ants = []
 
+    anim = Animation()
+
     for t in 1:NUM_STEPS
         curr_avg_distance = avg_pairwise_distance(ants)
         tot_avg_distance += curr_avg_distance
@@ -469,12 +470,17 @@ function run()
 
         env_decay(env)
 
+        env_plot = plot_ants(env, ants)
+        frame(anim, env_plot)
+
         if t % plot_every == 0
-            plot_ants(env, ants, "results/ants_$t.png")
+            plot_ants(env, ants; save_fig=true, save_filepath="results/ants_$t.png")
         end
 
         push!(ant_locations, [(ant.x_pos, ant.y_pos) for ant in ants])
     end
+
+    gif(anim, "results/ants_animation.gif", fps = 100)
 
     return num_completed_trips, paths, tot_avg_distance
 
