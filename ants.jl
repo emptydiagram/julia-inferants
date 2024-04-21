@@ -251,9 +251,6 @@ function check_walls(env::AntTMazeEnv, orig_x::Int, orig_y::Int, x_pos::Int, y_p
             is_valid = false
         end
     end
-    if y_pos < env.config.wall_t_bot_y && (x_pos < env.config.wall_left_x || x_pos > env.config.wall_right_x) && is_valid
-        println("(orig_x, orig_y) = ($orig_x, $orig_y); (x_pos, y_pos) = ($x_pos, $y_pos) should be invalid!!! is_valid = $is_valid")
-    end
     return is_valid
 end
 
