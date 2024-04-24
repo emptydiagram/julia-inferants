@@ -343,7 +343,6 @@ end
 
 function avg_pairwise_distance(ants::Vector{Ant})
     t_dis = 0
-
     for ant in ants
         for ant_2 in ants
             t_dis += l2_2d(ant.x_pos, ant.y_pos, ant_2.x_pos, ant_2.y_pos)
@@ -413,8 +412,6 @@ function run()
 
     println("Starting with $NUM_INIT_ANTS ants")
 
-    tot_avg_distance = 0
-
     print_frac = 0.05
     print_every = Int(NUM_STEPS * print_frac)
     plot_frac = 0.05
@@ -429,7 +426,6 @@ function run()
 
     for t in 1:NUM_STEPS
         curr_avg_distance = avg_pairwise_distance(ants)
-        tot_avg_distance += curr_avg_distance
         push!(distance_per_ants, curr_avg_distance)
 
         if t % print_every == 0
@@ -445,10 +441,12 @@ function run()
             end
         end
 
+        # maybe switch food at the half-way point
         if SWITCH_FOOD && t % (NUM_STEPS // 2) == 0
             config.food_location = (config.grid_dims[1] - config.food_location[1], config.food_location[2])
         end
 
+        # take a step, ants
         for ant in ants
             if !ant.is_returning
                 obs = get_ant_obs(env, ant)
@@ -479,11 +477,10 @@ function run()
 
     gif(anim, "results/ants_animation$(SWITCH_FOOD ? "_switch" : "").gif", fps = 100)
 
-    return num_completed_trips, paths, tot_avg_distance
+    return num_completed_trips, paths
 
 end
 
 
-num_completed_trips, paths, distance =  run()
+num_completed_trips, paths =  run()
 println("Number of completed trips: $num_completed_trips")
-println("Total distance: $distance")
