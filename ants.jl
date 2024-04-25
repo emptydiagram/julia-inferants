@@ -9,6 +9,7 @@ function l2_2d(x1, y1, x2, y2)
     return sqrt(((x1 - x2) ^ 2) + ((y1 - y2) ^ 2))
 end
 
+# turn each column in A into a probability distribution
 function norm_prob(A::Matrix{Float64})
     # return np.dot(x, np.diag(1 / np.sum(x, 0)))
     sA = sum(A, dims=1)
@@ -84,7 +85,7 @@ end
 
 function reset(mdp::MDP, obs::Observation)
     obs_idx = obs + 1
-    likelihood = mdp.lnA[obs_idx, :]
+    likelihood::Vector{Float64} = mdp.lnA[obs_idx, :]
     likelihood = copy(likelihood)
     mdp.sQ = reshape(softmax(likelihood), (length(likelihood), 1))
     mdp.prev_action = random_action(mdp)
@@ -323,6 +324,7 @@ end
 
 
 function create_ant(config::AntTMazeEnvConfig, env::AntTMazeEnv, C::Matrix{Float64})
+    # for each state, a distribution over pheromone levels
     A = zeros((config.num_pheromone_levels, config.num_states))
     # B = [Diagonal(ones(config.num_states)) for i in 1:config.num_states]
     B = zeros((config.num_actions, config.num_states, config.num_states))
